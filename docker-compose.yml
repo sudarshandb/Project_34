@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: attendly
+      POSTGRES_USER: attendly
+      POSTGRES_PASSWORD: attendly_dev_password
+    volumes:
+      - attendly_pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attendly -d attendly"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://attendly:attendly_dev_password@db:5432/attendly
+      SESSION_SECRET: replace-this-with-a-long-random-secret-before-deployment
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+
+volumes:
+  attendly_pgdata:
